@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আরবি ভাষা শিক্ষা</title>
+    <style>
+        /* --- বেসিক রিসেট --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* --- সাইডবার এবং ওভারলে --- */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; opacity: 0; transition: opacity 0.3s; }
+        .sidebar-overlay.active { display: block; opacity: 1; }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background-color: #ffffff; z-index: 1000; transition: left 0.3s ease; box-shadow: 2px 0 5px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+        .sidebar.active { left: 0; }
+        
+        .sidebar-top { padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0; background-color: #e0f2f1; flex-shrink: 0; }
+        .sidebar-id-text { font-size: 1.1rem; font-weight: bold; color: #004d40; margin-bottom: 10px; }
+        .btn-copy-id { background-color: #00695c; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-copy-id:hover { background-color: #004d40; }
+        
+        .sidebar-teacher-box { margin: 15px 20px; padding: 10px; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px; text-align: center; flex-shrink: 0; }
+        .sidebar-teacher-box span { display: block; font-size: 0.85rem; color: #33691e; font-weight: bold; margin-bottom: 5px; }
+        .sidebar-teacher-box strong { font-size: 1.1rem; color: #1b5e20; }
+
+        .sidebar-history { flex-grow: 1; overflow-y: auto; padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+        .history-header { font-size: 0.8rem; color: #757575; text-align: center; margin-bottom: 5px; font-weight: bold; }
+        .history-item { padding: 10px; border-radius: 5px; font-size: 0.85rem; font-weight: bold; text-align: center; border: 1px solid transparent; }
+        .history-paid { background-color: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .history-pending { background-color: #fff8e1; color: #f57f17; border-color: #ffe082; }
+        .history-unpaid { background-color: #ffebee; color: #c62828; border-color: #ef9a9a; }
+        .history-free-msg { background-color: #e3f2fd; color: #1565c0; border-color: #90caf9; padding: 15px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; text-align: center; line-height: 1.4; }
+
+        .sidebar-bottom { padding: 15px; text-align: center; font-size: 0.85rem; color: #555; background-color: #f9f9f9; border-top: 1px solid #e0e0e0; flex-shrink: 0; }
+        .sidebar-bottom strong { color: #00695c; font-size: 1rem; display: block; margin-top: 5px; }
+
+        /* --- রেকর্ড প্যানেল --- */
+        .record-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 1001; display: none; opacity: 0; transition: opacity 0.3s; }
+        .record-overlay.active { display: block; opacity: 1; }
+        .record-panel { position: fixed; top: 0; right: -80%; width: 80%; height: 100%; background-color: #f4f7f6; z-index: 1002; transition: right 0.3s ease; box-shadow: -2px 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+        .record-panel.active { right: 0; }
+        .record-header { padding: 15px; background-color: #00695c; color: white; text-align: center; position: relative; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .record-header h2 { font-size: 1.1rem; margin-bottom: 5px; }
+        .sync-time { font-size: 0.75rem; color: #b2dfdb; font-weight: normal; }
+        .close-record-btn { position: absolute; top: 15px; left: 15px; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+        .record-list { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .record-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #c8e6c9; }
+        .record-item-title { font-size: 1rem; font-weight: bold; color: #004d40; margin-bottom: 10px; text-align: center; }
+        .record-item-note { font-size: 0.9rem; color: #d32f2f; text-align: center; background: #ffebee; padding: 10px; border-radius: 5px; font-weight: bold; }
+        .btn-record-item { background-color: #d32f2f; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-record-item:hover { background-color: #b71c1c; }
+
+        /* --- মডালস (শিক্ষিকা, ভিডিও, আইডি রিকভারি, ভর্তি এলার্ট) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); position: relative; text-align: center; }
+        .close-modal-btn { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #d32f2f; background: none; border: none; }
+        
+        .teacher-name-title { font-size: 1.2rem; font-weight: bold; color: #00695c; margin-bottom: 15px; border-bottom: 2px solid #e0f2f1; padding-bottom: 10px; }
+        .teacher-instruction { font-size: 0.95rem; color: #333; line-height: 1.5; margin-bottom: 15px; text-align: justify; }
+        .tutorial-link { color: #1976d2; font-weight: bold; cursor: pointer; text-decoration: underline; }
+        .video-container { width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
+        .video-container video { width: 100%; display: block; }
+
+        .input-field { width: 100%; padding: 10px; margin: 15px 0; border: 2px solid #00695c; border-radius: 5px; font-size: 1rem; text-align: center; font-weight: bold; }
+        .alert-text { font-size: 1.1rem; color: #d32f2f; font-weight: bold; line-height: 1.5; margin-bottom: 15px; }
+        .alert-subtext { font-size: 0.9rem; color: #555; font-weight: bold; }
+
+        /* --- প্রথম অংশ (৪৫% স্ক্রিন) --- */
+        .top-section { height: 45vh; display: flex; flex-direction: column; background-color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; }
+        .app-bar { background-color: #00695c; color: white; text-align: center; padding: 8px 0; font-size: 1.1rem; font-weight: bold; flex-shrink: 0; position: relative; display: flex; justify-content: center; align-items: center; }
+        .menu-icon { position: absolute; left: 15px; font-size: 1.4rem; cursor: pointer; user-select: none; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; flex-shrink: 0; }
+        .month-nav { display: flex; align-items: center; gap: 15px; font-weight: bold; font-size: 0.95rem; color: #333; }
+        .month-nav span { cursor: pointer; user-select: none; font-size: 1.2rem; color: #00695c; padding: 0 5px; }
+        .legend { display: flex; gap: 10px; font-size: 0.75rem; font-weight: bold; }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .box { width: 12px; height: 12px; border-radius: 2px; }
+        .box.green { background-color: #4caf50; }
+        .box.red { background-color: #f44336; }
+        .calendar-wrapper { flex-grow: 1; padding: 0 5px 5px 5px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        .calendar-grid { display: grid; grid-template-columns: 45px repeat(5, 1fr); grid-template-rows: 25px repeat(6, 1fr); width: 100%; height: 100%; border-top: 1px solid #ccc; border-left: 1px solid #ccc; position: absolute; top: 0; left: 0; transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; }
+        .cell { border-right: 1px solid #ccc; border-bottom: 1px solid #ccc; display: flex; justify-content: center; align-items: center; font-size: 0.85rem; color: #333; }
+        .header-cell { background-color: #e0f2f1; font-weight: bold; font-size: 0.7rem; text-align: center; color: #004d40; }
+        .day-cell { background-color: #f1f8e9; font-weight: bold; font-size: 0.75rem; color: #33691e; }
+        .present { background-color: #c8e6c9 !important; color: #1b5e20 !important; font-weight: bold; }
+        .absent { background-color: #ffcdd2 !important; color: #b71c1c !important; font-weight: bold; }
+        .prev-record-row { background-color: #e8f5e9; color: #1b5e20; display: flex; justify-content: center; align-items: center; padding: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; flex-shrink: 0; border-top: 1px solid #c8e6c9; transition: background 0.2s; }
+        .prev-record-row:hover { background-color: #c8e6c9; }
+        .prev-record-row .arrow { margin-left: 8px; font-size: 1.1rem; }
+
+        /* --- দ্বিতীয় অংশ (৫৫% স্ক্রিন) --- */
+        .bottom-section { height: 55vh; background-color: #ffffff; display: flex; flex-direction: column; align-items: center; padding: 15px; overflow-y: auto; position: relative; }
+        
+        /* ব্যানার (Stage 2, Fee Warnings) */
+        .top-banner { width: 100%; padding: 12px; text-align: center; font-weight: bold; font-size: 0.95rem; border-radius: 5px; margin-bottom: 15px; display: none; flex-shrink: 0; line-height: 1.4; }
+        .banner-stage2 { background-color: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+        .banner-stage2 span { color: #d32f2f; text-decoration: underline; cursor: pointer; }
+        .banner-fee-unpaid { background-color: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+        .banner-fee-pending { background-color: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+        .banner-admission-pending { background-color: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+
+        .info-container { background-color: #e0f2f1; border: 2px solid #00695c; border-radius: 10px; padding: 20px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; margin-top: 10px; }
+        .info-text { font-size: 1.1rem; color: #004d40; font-weight: bold; margin-bottom: 15px; line-height: 1.4; }
+        .info-timer { font-size: 2.5rem; font-weight: bold; color: #d32f2f; letter-spacing: 2px; }
+        
+        .teacher-list-container { width: 100%; max-width: 400px; display: none; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .teacher-btn { background-color: #f1f8e9; border: 1px solid #c8e6c9; color: #1b5e20; padding: 12px; border-radius: 8px; font-size: 1.05rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; text-align: left; }
+        .teacher-btn:hover { background-color: #c8e6c9; }
+        .teacher-btn.unavailable { background-color: #ffcdd2; color: #b71c1c; border-color: #ef9a9a; text-align: center; }
+        .teacher-btn.unavailable:hover { background-color: #ef9a9a; }
+
+        .live-class-container { width: 100%; max-width: 400px; display: none; flex-direction: column; align-items: center; }
+        .live-header { font-size: 1.1rem; color: #004d40; font-weight: bold; text-align: center; margin-bottom: 5px; }
+        .forward-timer { font-size: 1.8rem; font-weight: bold; color: #d32f2f; margin-bottom: 15px; }
+        .link-box { width: 100%; background-color: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .box-title { font-size: 1rem; color: #1b5e20; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 5px; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-primary { background-color: #00695c; color: white; margin-bottom: 10px; }
+        .btn-primary:hover { background-color: #004d40; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-secondary { flex: 1; background-color: #e0e0e0; color: #333; font-size: 0.85rem; padding: 8px; }
+        .btn-secondary:hover { background-color: #bdbdbd; }
+        .divider { font-size: 1rem; font-weight: bold; color: #757575; margin: 5px 0 15px 0; }
+
+        .post-class-container { display: none; flex-direction: column; align-items: center; text-align: center; margin-top: 20px; width: 90%; max-width: 400px; }
+        .success-text { font-size: 1.2rem; color: #00695c; font-weight: bold; line-height: 1.5; background-color: #e0f2f1; padding: 15px; border-radius: 8px; border: 1px solid #80cbc4; width: 100%; }
+        .record-title { margin-top: 20px; font-size: 1.1rem; font-weight: bold; color: #1b5e20; }
+        .btn-record { background-color: #d32f2f; color: white; padding: 10px 25px; border: none; border-radius: 5px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-record:hover { background-color: #b71c1c; }
+
+        .message-box { font-size: 1.1rem; color: #555; font-weight: bold; text-align: center; margin-top: 20px; display: none; flex-direction: column; align-items: center; gap: 15px; }
+        .note-box { background-color: #fff3e0; border: 1px solid #ff9800; color: #e65100; padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; width: 90%; max-width: 400px; display: none; margin-top: 20px; }
+        .btn-refresh { background-color: #1976d2; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn-refresh:hover { background-color: #1565c0; }
+        .warning-text { font-size: 0.9rem; color: #d32f2f; font-weight: bold; margin-top: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- সাইডবার -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-id-text">Your ID : <span id="display-student-id"></span></div>
+            <button class="btn-copy-id" onclick="copyText(studentID)">copy your ID 📋</button>
+        </div>
+        
+        <div class="sidebar-teacher-box" id="sidebar-teacher-box" style="display: none;">
+            <span>বর্তমান শিক্ষিকা</span>
+            <strong id="sidebar-teacher-name">--</strong>
+        </div>
+
+        <div class="sidebar-history" id="sidebar-history">
+            <!-- মাসিক হাদিয়ার হিস্ট্রি এখানে আসবে -->
+        </div>
+
+        <div class="sidebar-bottom">This Website Develop By<strong>Muhammad Roni Biswas</strong></div>
+    </div>
+
+    <!-- রেকর্ড প্যানেল -->
+    <div class="record-overlay" id="record-overlay" onclick="toggleRecordPanel()"></div>
+    <div class="record-panel" id="record-panel">
+        <div class="record-header">
+            <button class="close-record-btn" onclick="toggleRecordPanel()">✖</button>
+            <h2>আরবি ভাষা শিক্ষার ক্লাস রেকর্ড</h2>
+            <div class="sync-time" id="sync-time">সর্বশেষ আপডেট: --</div>
+        </div>
+        <div class="record-list" id="record-list"></div>
+    </div>
+
+    <!-- শিক্ষিকা মডাল -->
+    <div class="modal-overlay" id="teacher-modal-overlay">
+        <div class="modal-box">
+            <button class="close-modal-btn" onclick="closeTeacherModal()">✖</button>
+            <div class="teacher-name-title" id="modal-teacher-name">শিক্ষিকার নাম</div>
+            
+            <div id="teacher-instruction-normal">
+                <div class="teacher-instruction">
+                    <span id="modal-teacher-name-text"></span> এর পড়া শোনানোর ক্লাসে জয়েন করতে সরাসরি Google meet লিংক দিয়ে জয়েন করুন। যদি লিংক থেকে জয়েন করতে না পারেন তাহলে নিচের কোড কপি করে Gmail অথবা Google meet এর মাধ্যমে জয়েন করুন। 
+                    <span class="tutorial-link" onclick="openVideoModal()">টিউটোরিয়াল দেখুন</span>
+                </div>
+                <button class="btn btn-primary" id="modal-join-btn">Google meet লিংক দিয়ে জয়েন করুন</button>
+                <button class="btn btn-secondary" id="modal-copy-btn">কোড কপি করুন 📋</button>
+            </div>
+
+            <div id="teacher-instruction-unavailable" style="display: none;">
+                <div class="teacher-instruction" style="color: #d32f2f; font-weight: bold; text-align: center; font-size: 1.1rem;">
+                    এই শিক্ষিকা আজকে ক্লাস করাবেন না
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ভিডিও মডাল -->
+    <div class="modal-overlay" id="video-modal-overlay">
+        <div class="modal-box" style="padding: 10px; background: #000;">
+            <button class="close-modal-btn" onclick="closeVideoModal()" style="color: white; top: -30px; right: 0;">✖</button>
+            <div class="video-container">
+                <video id="tutorial-video" controls>
+                    <source src="টিউটোরিয়াল.mp4" type="video/mp4">
+                    আপনার ব্রাউজার ভিডিও সাপোর্ট করে না।
+                </video>
+            </div>
+        </div>
+    </div>
+
+    <!-- আইডি রিকভারি মডাল (Stage 3 & 4) -->
+    <div class="modal-overlay" id="recovery-modal-overlay">
+        <div class="modal-box">
+            <div class="alert-text" style="color: #00695c;">আপনি যদি পূর্বে ক্লাস করে থাকেন তাহলে আপনার পুরোনো আইডি এখানে দিন</div>
+            <input type="text" id="recovery-id-input" class="input-field" placeholder="আপনার ১০ ডিজিটের আইডি দিন">
+            <button class="btn btn-primary" onclick="recoverStudentID()">আইডি যাচাই করুন</button>
+            <div id="recovery-msg" style="color: #d32f2f; font-weight: bold; margin-top: 10px; display: none;">আপনার আইডি পাওয়া যায়নি</div>
+        </div>
+    </div>
+
+    <!-- ভর্তি এলার্ট মডাল (Stage 4) -->
+    <div class="modal-overlay" id="admission-alert-overlay">
+        <div class="modal-box">
+            <div class="alert-text">আরবি ভাষা শিক্ষা ৫ম ব্যচে ক্লাস করতে হলে অবশ্যই আপনাকে ভর্তি হতে হবে</div>
+            <div class="alert-subtext">আদেশক্রমে: বাংলাদেশ ইসলামিক অনলাইন মাদ্রাসা</div>
+        </div>
+    </div>
+
+    <!-- Stage 2 মডাল (আমার সোনার বাংলা) -->
+    <div class="modal-overlay" id="stage2-info-overlay">
+        <div class="modal-box">
+            <button class="close-modal-btn" onclick="closeStage2Modal()">✖</button>
+            <div class="teacher-name-title">ভর্তি তথ্য</div>
+            <div class="teacher-instruction" style="text-align: center; font-weight: bold; color: #333;">
+                আমার সোনার বাংলা
+            </div>
+        </div>
+    </div>
+
+    <!-- প্রথম অংশ (Top 45vh) -->
+    <div class="top-section">
+        <header class="app-bar"><span class="menu-icon" onclick="toggleSidebar()">&#9776;</span>আরবি ভাষা শিক্ষা</header>
+        <div class="calendar-header">
+            <div class="month-nav"><span id="prev-month">&#9664;</span><div id="month-year"></div><span id="next-month">&#9654;</span></div>
+            <div class="legend"><div class="legend-item"><div class="box green"></div> উপস্থিত</div><div class="legend-item"><div class="box red"></div> অনুপস্থিত</div></div>
+        </div>
+        <div class="calendar-wrapper" id="calendar-wrapper"></div>
+        <div class="prev-record-row" onclick="toggleRecordPanel()">পূর্ববর্তী ক্লাস রেকর্ড দেখুন <span class="arrow">&#10140;</span></div>
+    </div>
+    <!-- দ্বিতীয় অংশ (Bottom 55vh) -->
+    <div class="bottom-section">
+        
+        <!-- ব্যানার্স (Stage 2, Fee Warnings) -->
+        <div class="top-banner banner-stage2" id="banner-stage2">
+            প্রিয় শিক্ষার্থী, আপনার পছন্দের শিক্ষিকার কাছে সিট পেতে এখনই আরবি ভাষা শিক্ষার ৫ম ব্যচের ভর্তি হয়ে যান। <span onclick="openStage2Modal()">ভর্তি সম্পর্কে আরো জানুন</span>
+        </div>
+        <div class="top-banner banner-fee-unpaid" id="banner-fee-unpaid"></div>
+        <div class="top-banner banner-fee-pending" id="banner-fee-pending"></div>
+        <div class="top-banner banner-admission-pending" id="banner-admission-pending"></div>
+
+        <!-- কাউন্টডাউন (মেইন ও আমুখতা উভয়ের জন্য) -->
+        <div class="info-container" id="main-info-container">
+            <div class="info-text" id="main-info-text"></div>
+            <div class="info-timer" id="main-info-timer"></div>
+        </div>
+
+        <!-- আমুখতা টিচার লিস্ট -->
+        <div class="teacher-list-container" id="teacher-list-container"></div>
+
+        <!-- মেইন ক্লাসের লাইভ বক্স -->
+        <div class="live-class-container" id="live-class-container">
+            <div class="live-header">আরবি ভাষা শিক্ষার <span id="live-class-number">০</span> নং ক্লাস চলমান</div>
+            <div class="forward-timer" id="forward-timer">০০:০০</div>
+            <div class="link-box">
+                <div class="box-title" id="main-live-title">Zoom লাইভে জয়েন করুন</div>
+                <button class="btn btn-primary" id="main-join-btn" onclick="joinMainLive()">Join live link</button>
+                <div class="btn-group" id="main-btn-group">
+                    <!-- JS দিয়ে বাটন আসবে (Zoom বা Meet অনুযায়ী) -->
+                </div>
+            </div>
+            <div class="divider">অথবা</div>
+            <div class="link-box">
+                <div class="box-title" id="alt-platform-title">YouTube লাইভে জয়েন করুন</div>
+                <button class="btn btn-primary" onclick="joinAltPlatform()">Join live</button>
+                <button class="btn btn-secondary" onclick="copyText(fetchedData.altLink, true)">copy link 📋</button>
+            </div>
+        </div>
+
+        <!-- ক্লাস শেষের বক্স (মেইন ক্লাস) -->
+        <div class="post-class-container" id="post-class-container">
+            <div class="success-text">আলহামদুলিল্লাহ<br>আজকের লাইভ ক্লাস সুন্দর ভাবে শেষ হয়েছে।</div>
+            <div class="record-title">আজকের ক্লাস রেকর্ড দেখুন</div>
+            <button class="btn-record" onclick="viewRecord()">রেকর্ড দেখুন</button>
+        </div>
+
+        <!-- সাকসেস/ওয়ার্নিং মেসেজ বক্স (আমুখতা ও মেইন উভয়ের জন্য) -->
+        <div class="info-container" id="success-container" style="background: none; border: none; box-shadow: none;">
+            <div class="success-text" id="success-text-content"></div>
+            <div class="warning-text" id="warning-text-content"></div>
+        </div>
+
+        <div class="note-box" id="note-box"></div>
+        <div class="message-box" id="message-box">
+            <span id="message-text"></span>
+            <button class="btn-refresh" id="refresh-btn" onclick="fetchSheetData()" style="display: none;">Refresh</button>
+        </div>
+
+    </div>
+
+    <script>
+        /* ==========================================
+           বেসিক ফাংশন ও আইডি জেনারেশন
+        ========================================== */
+        const engToBngDigits = {'0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯'};
+        function toBengaliNum(num) { return num.toString().split('').map(digit => engToBngDigits[digit] || digit).join(''); }
+
+        function getBangladeshTime() { return new Date(); } // টেস্টিংয়ের জন্য লোকাল টাইম
+
+        let currentStage = 1; // ডিফল্ট স্টেজ
+        let studentID = localStorage.getItem('studentID');
+
+        function getOrCreateStudentID() {
+            if (!studentID && currentStage < 3) { 
+                studentID = Math.floor(1000000000 + Math.random() * 9000000000).toString(); 
+                localStorage.setItem('studentID', studentID); 
+            }
+            if(studentID) document.getElementById('display-student-id').innerText = studentID;
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
+        function toggleRecordPanel() { document.getElementById('record-panel').classList.toggle('active'); document.getElementById('record-overlay').classList.toggle('active'); }
+
+        /* ==========================================
+           মডাল কন্ট্রোল
+        ========================================== */
+        function openStage2Modal() { document.getElementById('stage2-info-overlay').classList.add('active'); }
+        function closeStage2Modal() { document.getElementById('stage2-info-overlay').classList.remove('active'); }
+
+        let currentTeacher = null;
+        function openTeacherModal(teacherId, isAvailable) {
+            currentTeacher = amukhtaTeachers.find(t => t.id === teacherId);
+            if(!currentTeacher) return;
+
+            document.getElementById('modal-teacher-name').innerText = currentTeacher.name;
+            
+            if (isAvailable) {
+                document.getElementById('teacher-instruction-normal').style.display = 'block';
+                document.getElementById('teacher-instruction-unavailable').style.display = 'none';
+                
+                document.getElementById('modal-teacher-name-text').innerText = currentTeacher.name;
+                document.getElementById('modal-join-btn').onclick = () => { recordAmukhtaJoin(currentTeacher.id, currentTeacher.link, null); };
+                document.getElementById('modal-copy-btn').onclick = () => { recordAmukhtaJoin(currentTeacher.id, null, currentTeacher.code); };
+            } else {
+                document.getElementById('teacher-instruction-normal').style.display = 'none';
+                document.getElementById('teacher-instruction-unavailable').style.display = 'block';
+            }
+
+            document.getElementById('teacher-modal-overlay').classList.add('active');
+        }
+
+        function closeTeacherModal() { document.getElementById('teacher-modal-overlay').classList.remove('active'); }
+        function openVideoModal() { document.getElementById('video-modal-overlay').classList.add('active'); document.getElementById('tutorial-video').play(); }
+        function closeVideoModal() { document.getElementById('video-modal-overlay').classList.remove('active'); document.getElementById('tutorial-video').pause(); }
+
+        function copyText(text, isMainClassAction = false) {
+            if(!text) return;
+            navigator.clipboard.writeText(text).then(() => { 
+                if(isMainClassAction) submitMainAttendance(); 
+            }).catch(err => console.error('Copy failed', err));
+        }
+
+        /* ==========================================
+           আমুখতা শিক্ষিকাদের ডেটাবেস
+        ========================================== */
+        const amukhtaTeachers =[
+            { id: "25871", name: "সায়মা সুলতানা দিশা", link: "https://meet.google.com/bvc-wxuk-mpp", code: "bvc-wxuk-mpp", slots: [1, 2, 3, 4] },
+            { id: "61408", name: "লাবিবা সওগাত", link: "https://meet.google.com/sqx-qvqs-bva", code: "sqx-qvqs-bva", slots:[1, /*2,*/ 3, 4] },
+            { id: "78593", name: "মাহমুদা সুলতানা", link: "https://meet.google.com/mdm-nbai-yni", code: "mdm-nbai-yni", slots:[1, 2, 3, 4] },
+            { id: "36214", name: "কুলসুম আক্তার", link: "https://meet.google.com/xtb-oycz-hnh", code: "xtb-oycz-hnh", slots:[1, 2, 3, 4] },
+            { id: "94027", name: "কারিমা বিনতে আ. কাইয়ুম", link: "https://meet.google.com/edj-ocid-qvv", code: "edj-ocid-qvv", slots:[1, 2, 3, 4] },
+            { id: "13950", name: "শামিমা সুলতানা", link: "https://meet.google.com/mom-pdzs-szz", code: "mom-pdzs-szz", slots:[1, /*2,*/ 3, 4] },
+            { id: "57382", name: "নুসরাত জাহান নাজিবা", link: "https://meet.google.com/bhv-eoba-abs", code: "bhv-eoba-abs", slots:[/*1, 2,*/ 3, 4] },
+            { id: "20649", name: "আমাতুল্লাহ মুক্তা", link: "https://meet.google.com/pvj-qdvk-sbc", code: "pvj-qdvk-sbc", slots:[1, 2, /*3,*/ 4] },
+            { id: "81735", name: "আমিনা খাতুন", link: "https://meet.google.com/edk-gynm-oep", code: "edk-gynm-oep", slots:[/*1,*/ 2, 3, 4] }
+        ];
+
+        /* ==========================================
+           ক্যালেন্ডার লজিক (উপস্থিতি/অনুপস্থিতি সহ)
+        ========================================== */
+        const monthNames =["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        let currentDate = new Date(); 
+        const wrapper = document.getElementById('calendar-wrapper');
+        const monthYearText = document.getElementById('month-year');
+
+        function generateCalendarGrid(year, month) {
+            const grid = document.createElement('div'); grid.className = 'calendar-grid';
+            const weeks =['', '১ম সপ্তাহ', '২য় সপ্তাহ', '৩য় সপ্তাহ', '৪র্থ সপ্তাহ', '৫ম সপ্তাহ'];
+            weeks.forEach(w => { const c = document.createElement('div'); c.className = 'cell header-cell'; c.innerText = w; grid.appendChild(c); });
+            const days =['শনি', 'রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহস্পতি'];
+            const dayIndices =[6, 0, 1, 2, 3, 4]; 
+            
+            let dateMatrix = Array(6).fill(null).map(() => Array(5).fill(''));
+            let daysInMonth = new Date(year, month + 1, 0).getDate();
+            let currentWeekCol = 0;
+            
+            for (let date = 1; date <= daysInMonth; date++) {
+                let d = new Date(year, month, date); let dayOfWeek = d.getDay();
+                if (dayOfWeek === 5) continue; 
+                let rowIndex = dayIndices.indexOf(dayOfWeek);
+                if (currentWeekCol < 5) dateMatrix[rowIndex][currentWeekCol] = date; 
+                if (dayOfWeek === 4) currentWeekCol++;
+            }
+
+            const startDate = new Date('2026-04-17T00:00:00'); 
+            let attendedDates = JSON.parse(localStorage.getItem('attendedDates') || '[]');
+
+            for (let r = 0; r < 6; r++) {
+                const dayCell = document.createElement('div'); dayCell.className = 'cell day-cell'; dayCell.innerText = days[r]; grid.appendChild(dayCell);
+                for (let c = 0; c < 5; c++) {
+                    const dateCell = document.createElement('div'); dateCell.className = 'cell'; 
+                    
+                    let cellDateNum = dateMatrix[r][c];
+                    if(cellDateNum !== '') {
+                        dateCell.innerText = toBengaliNum(cellDateNum);
+                        
+                        let cellDateObj = new Date(year, month, cellDateNum);
+                        let dayOfWeek = cellDateObj.getDay();
+                        const cellDateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(cellDateNum).padStart(2, '0')}`;
+
+                        if (dayOfWeek === 0 || dayOfWeek === 2 || dayOfWeek === 4) {
+                            if (attendedDates.includes(cellDateStr)) {
+                                dateCell.classList.add('present');
+                            } else {
+                                let classEndTime = new Date(year, month, cellDateNum);
+                                classEndTime.setHours(19, 30, 0, 0); 
+                                if (cellDateObj >= new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) && getBangladeshTime() > classEndTime) {
+                                    dateCell.classList.add('absent');
+                                }
+                            }
+                        }
+                        else if (dayOfWeek === 6 || dayOfWeek === 1 || dayOfWeek === 3) {
+                            if (attendedDates.includes(cellDateStr)) {
+                                dateCell.classList.add('present');
+                            } else {
+                                let classEndTime = new Date(year, month, cellDateNum);
+                                classEndTime.setHours(21, 30, 0, 0); 
+                                if (cellDateObj >= new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) && getBangladeshTime() > classEndTime) {
+                                    dateCell.classList.add('absent');
+                                }
+                            }
+                        }
+                    }
+                    grid.appendChild(dateCell);
+                }
+            }
+            return grid;
+        }
+
+        function updateCalendar() {
+            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+            monthYearText.innerText = `${monthNames[month]} ${toBengaliNum(year)}`;
+            wrapper.innerHTML = ''; wrapper.appendChild(generateCalendarGrid(year, month));
+        }
+        document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateCalendar(); });
+        document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); updateCalendar(); });
+        updateCalendar();
+     /* ==========================================
+           গুগল শিট লিংকস
+        ========================================== */
+        const MAIN_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-rz5R3Yo3EIBtTwDgyUSILiHiDDyGzFuQzJQhLy_-9d26Bgbygmp6Ziv9iy3tbd4JFisvcxosPLt/pub?output=csv";
+        const AMUKHTA_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-rz5R3Yo3EIBtTwDgyUSILiHiDDyGzFuQzJQhLy_-9d26Bgbygmp6Ziv9iy3tbd4JFisvcxosPLt/pub?gid=1323713580&single=true&output=csv";
+        const ADMISSION_FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqcu3Tl_hkH6tlTqvK6t2WK30ZVz1H74t95sZKzsrqYFbUAX3TZR9vOp-XSBP0Ma2j0MNSjCah-AP_/pub?gid=0&single=true&output=csv";
+        const ADMISSION_STUDENTS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqcu3Tl_hkH6tlTqvK6t2WK30ZVz1H74t95sZKzsrqYFbUAX3TZR9vOp-XSBP0Ma2j0MNSjCah-AP_/pub?gid=1001097484&single=true&output=csv";
+        const MONTHLY_FEE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRiLJOcoVF7vXME3kbwd9AFk-iwPg1SEhy-TQjUpz4I8ZHX6wZh1Y9S3RySDHUEY5QAArGCPM79FCgd/pub?gid=890274886&single=true&output=csv";
+        const TEACHER_CONFIRMATION_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-rz5R3Yo3EIBtTwDgyUSILiHiDDyGzFuQzJQhLy_-9d26Bgbygmp6Ziv9iy3tbd4JFisvcxosPLt/pub?gid=598233785&single=true&output=csv";
+        const ATTENDANCE_AMUKHTA_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvtsBpL1EGQr_FpaZTVODByCBSrm5LFBWswOyBBc5cK1ubKOrefb7IpqqwSzCVrhjIcG_JI_7zOPeu/pub?gid=2108853732&single=true&output=csv";
+        const ATTENDANCE_MAIN_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvtsBpL1EGQr_FpaZTVODByCBSrm5LFBWswOyBBc5cK1ubKOrefb7IpqqwSzCVrhjIcG_JI_7zOPeu/pub?gid=325269734&single=true&output=csv";
+
+        let fetchedData = { zoomLink: "", zoomID: "", zoomPass: "", meetLink: "", meetCode: "", altPlatform: "", altLink: "", note: "", classNum: "", isFetched: false };
+        let isFetching = false;
+        let amukhtaAvailableTeachers = [];
+        let amukhtaDynamicSchedule =[];
+        let stageEffectiveDate = 0;
+
+        /* ==========================================
+           হেল্পার ফাংশনস
+        ========================================== */
+        function parseDate(dateStr) {
+            if(!dateStr) return 0;
+            const parts = dateStr.split(/[-/]/);
+            if(parts.length === 3) return new Date(parts[2], parts[1]-1, parts[0]).getTime();
+            return 0;
+        }
+
+        function formatSyncTime(dateObj) {
+            const d = toBengaliNum(dateObj.getDate());
+            const m = monthNames[dateObj.getMonth()];
+            const y = toBengaliNum(dateObj.getFullYear());
+            let hours = dateObj.getHours();
+            const minutes = toBengaliNum(dateObj.getMinutes().toString().padStart(2, '0'));
+            let period = 'রাত';
+            if(hours >= 6 && hours < 12) period = 'সকাল';
+            else if(hours >= 12 && hours < 15) period = 'দুপুর';
+            else if(hours >= 15 && hours < 18) period = 'বিকাল';
+            else if(hours >= 18 && hours < 20) period = 'সন্ধ্যা';
+            hours = hours % 12; hours = hours ? hours : 12;
+            return `${d} ${m} ${y}, ${period} ${toBengaliNum(hours)}:${minutes}`;
+        }
+
+        function calculateAmukhtaClassNumber(currentBstDate, currentSlot) {
+            const startDate = new Date('2026-04-17T00:00:00');
+            let amukhtaDayCount = 0;
+            let loopDate = new Date(startDate);
+            let targetDate = new Date(currentBstDate);
+            targetDate.setHours(0,0,0,0);
+
+            while (loopDate < targetDate) {
+                let day = loopDate.getDay();
+                if (day === 6 || day === 1 || day === 3) amukhtaDayCount++;
+                loopDate.setDate(loopDate.getDate() + 1);
+            }
+            
+            let todayDay = targetDate.getDay();
+            if (todayDay === 6 || todayDay === 1 || todayDay === 3) return (amukhtaDayCount * 4) + currentSlot;
+            return 0;
+        }
+
+        /* ==========================================
+           অ্যাটেনডেন্স ও ফর্ম সাবমিশন
+        ========================================== */
+        function submitMainAttendance() {
+            const bstNow = getBangladeshTime();
+            const dateStr = `${bstNow.getFullYear()}-${String(bstNow.getMonth()+1).padStart(2, '0')}-${String(bstNow.getDate()).padStart(2, '0')}`;
+            let attendedDates = JSON.parse(localStorage.getItem('attendedDates') || '[]');
+            
+            if (!attendedDates.includes(dateStr)) {
+                attendedDates.push(dateStr);
+                localStorage.setItem('attendedDates', JSON.stringify(attendedDates));
+
+                const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSd9yCHl6aU8txsH8grt-mOmPGST555Qd-RF892fnn8hxSCpBg/formResponse';
+                const formData = new URLSearchParams();
+                formData.append('entry.1762581456', studentID); 
+
+                fetch(formUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData })
+                .then(() => { updateCalendar(); }).catch(err => console.error(err));
+            }
+        }
+
+        function submitAmukhtaAttendance(teacherId, dateStr) {
+            let attendedDates = JSON.parse(localStorage.getItem('attendedDates') || '[]');
+            const storageKey = 'amukhta_attendance_submitted_' + dateStr;
+
+            if (!localStorage.getItem(storageKey)) {
+                if (!attendedDates.includes(dateStr)) {
+                    attendedDates.push(dateStr);
+                    localStorage.setItem('attendedDates', JSON.stringify(attendedDates));
+                }
+
+                const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfzc6Tal9BQfO5VGoI0KUuZzR77okqUX-C0Cq4zd2fQqxjrdg/formResponse';
+                const formData = new URLSearchParams();
+                formData.append('entry.146890442', studentID); 
+                formData.append('entry.1435168528', teacherId); 
+
+                fetch(formUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData })
+                .then(() => { 
+                    localStorage.setItem(storageKey, 'true');
+                    updateCalendar(); 
+                }).catch(err => console.error(err));
+            }
+        }
+
+        function recordAmukhtaJoin(teacherId, linkToOpen = null, codeToCopy = null) {
+            const bstNow = getBangladeshTime();
+            const dateStr = `${bstNow.getFullYear()}-${String(bstNow.getMonth()+1).padStart(2, '0')}-${String(bstNow.getDate()).padStart(2, '0')}`;
+            
+            submitAmukhtaAttendance(teacherId, dateStr);
+
+            if (!localStorage.getItem(`amukhta_join_${dateStr}`)) {
+                localStorage.setItem(`amukhta_join_${dateStr}`, bstNow.getTime().toString());
+            }
+
+            if (linkToOpen) {
+                setTimeout(() => { window.open(linkToOpen, '_blank'); }, 800);
+            } else if (codeToCopy) {
+                copyText(codeToCopy);
+            }
+
+            closeTeacherModal();
+            updateUI(); 
+        }
+
+        /* ==========================================
+           আইডি রিকভারি (Stage 3 & 4)
+        ========================================== */
+        async function recoverStudentID() {
+            const inputId = document.getElementById('recovery-id-input').value.trim();
+            const msgBox = document.getElementById('recovery-msg');
+            if(inputId.length !== 10) {
+                msgBox.style.display = 'block'; msgBox.innerText = "সঠিক ১০ ডিজিটের আইডি দিন"; return;
+            }
+            
+            msgBox.style.display = 'block'; msgBox.style.color = '#00695c'; msgBox.innerText = "যাচাই করা হচ্ছে...";
+
+            try {
+                const [amukhtaRes, mainRes] = await Promise.all([
+                    fetch(ATTENDANCE_AMUKHTA_CSV_URL).then(r => r.text()),
+                    fetch(ATTENDANCE_MAIN_CSV_URL).then(r => r.text())
+                ]);
+
+                let recoveredDates =[];
+                let idFound = false;
+
+                const processRows = (text) => {
+                    const rows = text.split('\n');
+                    for(let i=1; i<rows.length; i++) {
+                        const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 2 && cols[1].replace(/"/g, '').trim() === inputId) {
+                            idFound = true;
+                            const dateStr = cols[0].replace(/"/g, '').trim().split(' ')[0]; // MM/DD/YYYY
+                            const parts = dateStr.split('/');
+                            if(parts.length === 3) {
+                                const formattedDate = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+                                if(!recoveredDates.includes(formattedDate)) recoveredDates.push(formattedDate);
+                            }
+                        }
+                    }
+                };
+
+                processRows(amukhtaRes);
+                processRows(mainRes);
+
+                if(idFound) {
+                    localStorage.setItem('studentID', inputId);
+                    studentID = inputId;
+                    document.getElementById('display-student-id').innerText = studentID;
+                    
+                    let existingDates = JSON.parse(localStorage.getItem('attendedDates') || '[]');
+                    recoveredDates.forEach(d => { if(!existingDates.includes(d)) existingDates.push(d); });
+                    localStorage.setItem('attendedDates', JSON.stringify(existingDates));
+                    
+                    updateCalendar();
+                    document.getElementById('recovery-modal-overlay').classList.remove('active');
+                    checkAdmissionStatus(); // রিকভারির পর ভর্তি চেক
+                } else {
+                    msgBox.style.color = '#d32f2f'; msgBox.innerText = "আপনার আইডি পাওয়া যায়নি";
+                }
+            } catch (error) {
+                msgBox.style.color = '#d32f2f'; msgBox.innerText = "সার্ভার সমস্যা, আবার চেষ্টা করুন";
+            }
+        }
+
+        /* ==========================================
+           ভর্তি ও সিকিউরিটি চেক (Stage 3 & 4)
+        ========================================== */
+        async function checkAdmissionStatus() {
+            if(currentStage < 3) return;
+            
+            const admissionStatus = localStorage.getItem('admissionStatus'); // 'paid' or 'free'
+            
+            // যদি ভর্তি নিশ্চিত না হয়ে থাকে
+            if(!admissionStatus) {
+                try {
+                    const response = await fetch(ADMISSION_FORM_CSV_URL);
+                    const text = await response.text();
+                    const rows = text.split('\n');
+                    
+                    let foundInForm = false;
+                    let formStatus = "";
+                    let studentData = {};
+
+                    for(let i=1; i<rows.length; i++) {
+                        const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 7 && cols[1].replace(/"/g, '').trim() === studentID) {
+                            foundInForm = true;
+                            formStatus = cols[2] ? cols[2].replace(/"/g, '').trim().toLowerCase() : "";
+                            studentData = {
+                                name: cols[2].replace(/"/g, '').trim(),
+                                fbName: cols[3].replace(/"/g, '').trim(),
+                                phone: cols[4].replace(/"/g, '').trim(),
+                                fbLink: cols[5].replace(/"/g, '').trim(),
+                                teacherId: cols[6].replace(/"/g, '').trim()
+                            };
+                            break;
+                        }
+                    }
+
+                    if(!foundInForm) {
+                        document.getElementById('admission-alert-overlay').classList.add('active');
+                        return;
+                    } else {
+                        document.getElementById('admission-alert-overlay').classList.remove('active');
+                        
+                        if(formStatus === 'pending' || formStatus === '') {
+                            document.getElementById('banner-admission-pending').style.display = 'block';
+                            document.getElementById('banner-admission-pending').innerText = "আলহামদুলিল্লাহ, আপনার ভর্তি ফর্ম জমা নেয়া হয়েছে। আমাদের একজন প্রতিনিধি আপনার ভর্তি নিশ্চিত করবে। আপনার ভর্তি নিশ্চিত হলে আপনাকে জানিয়ে দেয়া হবে।";
+                        } 
+                        else if(formStatus === 'paid' || formStatus === 'free') {
+                            // Students শিট চেক
+                            const stdRes = await fetch(ADMISSION_STUDENTS_CSV_URL);
+                            const stdText = await stdRes.text();
+                            const stdRows = stdText.split('\n');
+                            let foundInStudents = false;
+
+                            for(let i=1; i<stdRows.length; i++) {
+                                const cols = stdRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                                if(cols.length >= 2 && cols[1].replace(/"/g, '').trim() === studentID) {
+                                    foundInStudents = true; break;
+                                }
+                            }
+
+                            if(foundInStudents) {
+                                alert("আপনার আইডি দিয়ে পূর্বেও ভর্তি নিশ্চিত করা হয়েছে। যদি কোনো সমস্যা হয় তাহলে দয়া করে আপনার শিক্ষিকার সাথে যোগাযোগ করুন।");
+                            } else {
+                                alert("আলহামদুলিল্লাহ আপনার ভর্তি নিশ্চিত হয়েছে। আপনি এখন নিয়মিত ক্লাস করতে পারবেন ইনশা আল্লাহ");
+                                localStorage.setItem('admissionStatus', formStatus);
+                                localStorage.setItem('admissionMonth', new Date().getMonth().toString());
+                                
+                                // সাইলেন্ট ফর্ম সাবমিশন
+                                if(!localStorage.getItem('admission_form_submitted')) {
+                                    const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSeM-ocoPSjjSH3uK8zBh2fLZvxw-EgUzEbznxwGYyF0-C6PIQ/formResponse';
+                                    const formData = new URLSearchParams();
+                                    formData.append('entry.722068660', studentID);
+                                    formData.append('entry.734175229', studentData.name);
+                                    formData.append('entry.324016445', studentData.fbName);
+                                    formData.append('entry.1480199546', studentData.phone);
+                                    formData.append('entry.1514961557', studentData.fbLink);
+                                    formData.append('entry.1436318432', studentData.teacherId);
+
+                                    fetch(formUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData })
+                                    .then(() => { localStorage.setItem('admission_form_submitted', 'true'); })
+                                    .catch(err => { localStorage.setItem('pending_admission_form', JSON.stringify(studentData)); });
+                                }
+                                updateUI();
+                            }
+                        }
+                    }
+                } catch (error) { console.error("Admission check error", error); }
+            } 
+            // যদি ভর্তি নিশ্চিত হয়ে থাকে (Security Check)
+            else {
+                try {
+                    const stdRes = await fetch(ADMISSION_STUDENTS_CSV_URL);
+                    const stdText = await stdRes.text();
+                    const stdRows = stdText.split('\n');
+                    let foundInStudents = false;
+
+                    for(let i=1; i<stdRows.length; i++) {
+                        const cols = stdRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 2 && cols[1].replace(/"/g, '').trim() === studentID) {
+                            foundInStudents = true; break;
+                        }
+                    }
+
+                    if(!foundInStudents) {
+                        // হ্যাকার বা ফেক স্ট্যাটাস
+                        localStorage.removeItem('admissionStatus');
+                        document.getElementById('admission-alert-overlay').classList.add('active');
+                    }
+                } catch (error) { console.error("Security check error", error); }
+            }
+        }
+
+        /* ==========================================
+           মাসিক হাদিয়া চেক (Stage 4)
+        ========================================== */
+        async function checkMonthlyFee() {
+            if(currentStage < 4) return;
+            const admissionStatus = localStorage.getItem('admissionStatus');
+            const admissionMonth = localStorage.getItem('admissionMonth');
+            const bstNow = getBangladeshTime();
+            const currentMonth = bstNow.getMonth();
+            const currentYear = bstNow.getFullYear();
+            
+            const historyContainer = document.getElementById('sidebar-history');
+            historyContainer.innerHTML = '<div class="history-header">মাসিক হাদিয়ার হিস্ট্রি</div>';
+
+            if(admissionStatus === 'free') {
+                historyContainer.innerHTML += `<div class="history-free-msg">আলহামদুলিল্লাহ, বাংলাদেশ ইসলামিক অনলাইন মাদ্রাসার পক্ষ থেকে আরবি ভাষা শিক্ষার ৫ম ব্যচ আপনার জন্য ফ্রিতে করার সুযোগ দেয়া হয়েছে। আপনার মাসিক হাদিয়া দেয়ার প্রয়োজন নেই</div>`;
+                return;
+            }
+
+            if(admissionStatus === 'paid' && admissionMonth !== currentMonth.toString()) {
+                const feeTag = `fee_paid_${currentYear}_${currentMonth}`;
+                
+                try {
+                    const response = await fetch(MONTHLY_FEE_CSV_URL);
+                    const text = await response.text();
+                    const rows = text.split('\n');
+                    
+                    let feeStatus = "unpaid";
+                    let historyHTML = "";
+
+                    for(let i=1; i<rows.length; i++) {
+                        const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 3 && cols[1].replace(/"/g, '').trim() === studentID) {
+                            const dateStr = cols[0].replace(/"/g, '').trim().split(' ')[0];
+                            const parts = dateStr.split('/');
+                            if(parts.length === 3) {
+                                const rowMonth = parseInt(parts[0]) - 1;
+                                const rowYear = parseInt(parts[2]);
+                                const status = cols[2].replace(/"/g, '').trim().toLowerCase();
+                                
+                                const monthNameBng = monthNames[rowMonth];
+                                if(status === 'paid') {
+                                    historyHTML += `<div class="history-item history-paid">${monthNameBng} মাসের হাদিয়া পরিশোধিত (তারিখ: ${dateStr})</div>`;
+                                    if(rowMonth === currentMonth && rowYear === currentYear) feeStatus = "paid";
+                                } else {
+                                    historyHTML += `<div class="history-item history-pending">${monthNameBng} মাসের হাদিয়া পেন্ডিং</div>`;
+                                    if(rowMonth === currentMonth && rowYear === currentYear) feeStatus = "pending";
+                                }
+                            }
+                        }
+                    }
+
+                    historyContainer.innerHTML += historyHTML;
+
+                    if(feeStatus === "unpaid") {
+                        historyContainer.innerHTML += `<div class="history-item history-unpaid">আপনি ${monthNames[currentMonth]} মাসের হাদিয়া দেননি</div>`;
+                        document.getElementById('banner-fee-unpaid').style.display = 'block';
+                        document.getElementById('banner-fee-unpaid').innerText = `আপনি ${monthNames[currentMonth]} মাসের হাদিয়া এখনো পরিশোধ করেননি। মাসিক হাদিয়া একটা আমানত, চেষ্টা করবেন সময় মতো এটা পরিশোধ করার ইনশা আল্লাহ`;
+                    } 
+                    else if(feeStatus === "pending") {
+                        document.getElementById('banner-fee-pending').style.display = 'block';
+                        document.getElementById('banner-fee-pending').innerText = "আপনার হাদিয়ার ফর্ম পূরণ করা হয়েছে। আমাদের প্রতিনিধি নিশ্চিত হয়ে এটা Approve করবে। হাদিয়া নিশ্চিত হয়ে গেলে আপনাকে জানানো হবে ইনশা আল্লাহ";
+                    }
+                    else if(feeStatus === "paid" && !localStorage.getItem(feeTag)) {
+                        alert(`আলহামদুলিল্লাহ, আপনার ${monthNames[currentMonth]} মাসের হাদিয়াটি নিশ্চিত করা হয়েছে`);
+                        localStorage.setItem(feeTag, 'true');
+                    }
+
+                } catch (error) { console.error("Fee check error", error); }
+            }
+        }
+
+        /* ==========================================
+           শিক্ষিকা আপডেট (Stage 3 & 4)
+        ========================================== */
+        async function updateTeacherInfo() {
+            if(currentStage < 3) return;
+            const bstNow = getBangladeshTime();
+            const currentMonth = bstNow.getMonth();
+            const currentYear = bstNow.getFullYear();
+            const currentDate = bstNow.getDate();
+            
+            const teacherTag = `teacher_updated_${currentYear}_${currentMonth}`;
+            let myTeacherId = localStorage.getItem('myTeacherId');
+            let myTeacherName = localStorage.getItem('myTeacherName');
+
+            // Stage 4 এ ৫ তারিখের পর আপডেট
+            if(currentStage === 4 && currentDate > 5 && !localStorage.getItem(teacherTag)) {
+                try {
+                    const stdRes = await fetch(ADMISSION_STUDENTS_CSV_URL);
+                    const stdText = await stdRes.text();
+                    const stdRows = stdText.split('\n');
+                    for(let i=1; i<stdRows.length; i++) {
+                        const cols = stdRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 7 && cols[1].replace(/"/g, '').trim() === studentID) {
+                            myTeacherId = cols[6].replace(/"/g, '').trim();
+                            const teacherObj = amukhtaTeachers.find(t => t.id === myTeacherId);
+                            if(teacherObj) {
+                                myTeacherName = teacherObj.name;
+                                localStorage.setItem('myTeacherId', myTeacherId);
+                                localStorage.setItem('myTeacherName', myTeacherName);
+                                localStorage.setItem(teacherTag, 'true');
+                            }
+                            break;
+                        }
+                    }
+                } catch (error) { console.error("Teacher update error", error); }
+            } 
+            // Stage 3 বা প্রথমবার
+            else if(!myTeacherId) {
+                try {
+                    const stdRes = await fetch(ADMISSION_STUDENTS_CSV_URL);
+                    const stdText = await stdRes.text();
+                    const stdRows = stdText.split('\n');
+                    for(let i=1; i<stdRows.length; i++) {
+                        const cols = stdRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 7 && cols[1].replace(/"/g, '').trim() === studentID) {
+                            myTeacherId = cols[6].replace(/"/g, '').trim();
+                            const teacherObj = amukhtaTeachers.find(t => t.id === myTeacherId);
+                            if(teacherObj) {
+                                myTeacherName = teacherObj.name;
+                                localStorage.setItem('myTeacherId', myTeacherId);
+                                localStorage.setItem('myTeacherName', myTeacherName);
+                            }
+                            break;
+                        }
+                    }
+                } catch (error) { console.error("Teacher fetch error", error); }
+            }
+
+            if(myTeacherName) {
+                document.getElementById('sidebar-teacher-box').style.display = 'block';
+                document.getElementById('sidebar-teacher-name').innerText = myTeacherName;
+            }
+        }
+
+        /* ==========================================
+           আমুখতা ডায়নামিক শিডিউল (Stage 4)
+        ========================================== */
+        async function fetchDynamicSchedule() {
+            if(currentStage < 4) return;
+            const bstNow = getBangladeshTime();
+            const currentMonth = bstNow.getMonth();
+            const currentYear = bstNow.getFullYear();
+            const currentDate = bstNow.getDate();
+            const myTeacherId = localStorage.getItem('myTeacherId');
+            
+            if(!myTeacherId) return;
+
+            const scheduleTag = `schedule_${currentYear}_${currentMonth}_${myTeacherId}`;
+            
+            if(currentDate > 4 && !localStorage.getItem(scheduleTag)) {
+                try {
+                    const response = await fetch(TEACHER_CONFIRMATION_CSV_URL);
+                    const text = await response.text();
+                    const rows = text.split('\n');
+                    
+                    let newSchedule =[];
+                    for(let i=1; i<rows.length; i++) {
+                        const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(cols.length >= 4 && cols[1].replace(/"/g, '').trim() === myTeacherId) {
+                            const timeStr = cols[2].replace(/"/g, '').trim(); // 14:30
+                            const classNum = cols[3].replace(/"/g, '').trim();
+                            
+                            const [h, m] = timeStr.split(':').map(Number);
+                            // আন্তর্জাতিক সময়কে বাংলাদেশ সময়ে কনভার্ট (যদি শিটে UTC থাকে, তবে +6 যোগ করতে হবে। আপাতত শিটের সময়কেই BST ধরা হলো)
+                            newSchedule.push({ h: h, m: m, classNum: classNum });
+                        }
+                    }
+                    
+                    if(newSchedule.length > 0) {
+                        newSchedule.sort((a, b) => (a.h * 60 + a.m) - (b.h * 60 + b.m));
+                        localStorage.setItem(scheduleTag, JSON.stringify(newSchedule));
+                        amukhtaDynamicSchedule = newSchedule;
+                    }
+                } catch (error) { console.error("Schedule fetch error", error); }
+            } else {
+                const savedSchedule = localStorage.getItem(scheduleTag);
+                if(savedSchedule) amukhtaDynamicSchedule = JSON.parse(savedSchedule);
+            }
+        }
+
+        function getDynamicAmukhtaState(bstNow) {
+            if(amukhtaDynamicSchedule.length === 0) return { state: 'ended' };
+            
+            const currentMins = bstNow.getHours() * 60 + bstNow.getMinutes();
+            
+            for(let i=0; i<amukhtaDynamicSchedule.length; i++) {
+                const slot = amukhtaDynamicSchedule[i];
+                const slotMins = slot.h * 60 + slot.m;
+                
+                if(currentMins < slotMins) {
+                    return { state: 'countdown', slot: i+1, targetH: slot.h, targetM: slot.m, classNum: slot.classNum };
+                } else if(currentMins >= slotMins && currentMins < slotMins + 30) {
+                    return { state: 'live', slot: i+1, startH: slot.h, startM: slot.m, classNum: slot.classNum };
+                }
+            }
+            return { state: 'ended' };
+        }
+
+        function getStaticAmukhtaState(bstNow) {
+            const h = bstNow.getHours();
+            const m = bstNow.getMinutes();
+            const timeVal = h + m / 60;
+
+            if (timeVal < 10) return { state: 'countdown', slot: 1, targetH: 10, targetM: 0 };
+            if (timeVal >= 10 && timeVal < 10.5) return { state: 'live', slot: 1 };
+            if (timeVal >= 10.5 && timeVal < 15) return { state: 'countdown', slot: 2, targetH: 15, targetM: 0 };
+            if (timeVal >= 15 && timeVal < 15.5) return { state: 'live', slot: 2 };
+            if (timeVal >= 15.5 && timeVal < 19) return { state: 'countdown', slot: 3, targetH: 19, targetM: 0 };
+            if (timeVal >= 19 && timeVal < 19.5) return { state: 'live', slot: 3 };
+            if (timeVal >= 19.5 && timeVal < 21) return { state: 'countdown', slot: 4, targetH: 21, targetM: 0 };
+            if (timeVal >= 21 && timeVal < 21.5) return { state: 'live', slot: 4 };
+
+            return { state: 'ended' };
+        }
+
+        /* ==========================================
+           মেইন শিট ফেচিং ও রেকর্ড রেন্ডার
+        ========================================== */
+        function renderRecords() {
+            const listContainer = document.getElementById('record-list');
+            const syncTimeEl = document.getElementById('sync-time');
+            const recordsJson = localStorage.getItem('classRecords');
+            const lastSync = localStorage.getItem('lastSyncTime');
+            
+            if(lastSync) syncTimeEl.innerText = `সর্বশেষ আপডেট: ${lastSync}`;
+            listContainer.innerHTML = ''; 
+            
+            if(recordsJson) {
+                const records = JSON.parse(recordsJson);
+                if(records.length === 0) {
+                    listContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #757575;">কোনো রেকর্ড পাওয়া যায়নি</div>';
+                    return;
+                }
+                records.forEach(rec => {
+                    // Stage 3 & 4: Effective Date এর পরের রেকর্ড হাইড করা
+                    if(currentStage >= 3 && stageEffectiveDate > 0 && parseDate(rec.dateStr) >= stageEffectiveDate) return;
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'record-item';
+                    const classNumBng = toBengaliNum(rec.classNum || "০");
+                    const hasLink = rec.ytLink !== "" || rec.fbLink !== "";
+                    const linkToOpen = rec.ytLink || rec.fbLink;
+                    
+                    if(hasLink) {
+                        itemDiv.innerHTML = `<div class="record-item-title">${classNumBng} নং ক্লাস রেকর্ড</div><button class="btn-record-item" onclick="window.open('${linkToOpen}', '_blank')">রেকর্ড দেখুন</button>`;
+                    } else if(rec.note !== "") {
+                        itemDiv.innerHTML = `<div class="record-item-title">${classNumBng} নং ক্লাস হয়নি</div><div class="record-item-note">${rec.note}</div>`;
+                    } else {
+                        itemDiv.innerHTML = `<div class="record-item-title">${classNumBng} নং ক্লাস হয়নি</div>`;
+                    }
+                    listContainer.appendChild(itemDiv);
+                });
+            } else {
+                listContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #757575;">ডেটা লোড হচ্ছে...</div>';
+            }
+        }
+
+        async function fetchSheetData() {
+            if (isFetching) return;
+            isFetching = true;
+            
+            const bstNow = getBangladeshTime();
+            const hours = bstNow.getHours();
+            const dayOfWeek = bstNow.getDay();
+            const isLiveWindow = (dayOfWeek === 0 || dayOfWeek === 2 || dayOfWeek === 4) && (hours >= 19 && hours <= 23);
+
+            if (isLiveWindow && !fetchedData.isFetched) {
+                document.getElementById('main-info-container').style.display = 'none';
+                document.getElementById('live-class-container').style.display = 'none';
+                document.getElementById('post-class-container').style.display = 'none';
+                document.getElementById('note-box').style.display = 'none';
+                
+                const messageBox = document.getElementById('message-box');
+                messageBox.style.display = 'flex';
+                document.getElementById('message-text').innerText = "ডেটা সিঙ্ক করা হচ্ছে...";
+                document.getElementById('refresh-btn').style.display = 'none';
+            }
+
+            try {
+                const response = await fetch(MAIN_SHEET_CSV_URL);
+                const text = await response.text();
+                const rows = text.split('\n');
+                
+                // Stage Check (I কলাম)
+                if(rows.length > 1) {
+                    const firstRowCols = rows[1].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(firstRowCols[8]) currentStage = parseInt(firstRowCols[8].replace(/"/g, '').trim()) || 1;
+                    if(firstRowCols[9]) stageEffectiveDate = parseDate(firstRowCols[9].replace(/"/g, '').trim());
+                }
+
+                // Stage 2 Banner
+                if(currentStage === 2) document.getElementById('banner-stage2').style.display = 'block';
+                else document.getElementById('banner-stage2').style.display = 'none';
+
+                // Stage 3 & 4 Checks
+                if(currentStage >= 3) {
+                    if(!studentID) {
+                        document.getElementById('recovery-modal-overlay').classList.add('active');
+                    } else {
+                        checkAdmissionStatus();
+                        updateTeacherInfo();
+                        if(currentStage === 4) {
+                            checkMonthlyFee();
+                            fetchDynamicSchedule();
+                        }
+                    }
+                }
+
+                let records =[];
+                for(let i = 1; i < rows.length; i++) { 
+                    const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(cols.length > 0 && cols[0].trim() !== "") {
+                        records.push({
+                            dateStr: cols[0].replace(/"/g, '').trim(),
+                            ytLink: cols[4] ? cols[4].replace(/"/g, '').trim() : "",
+                            fbLink: cols[5] ? cols[5].replace(/"/g, '').trim() : "",
+                            note: cols[6] ? cols[6].replace(/"/g, '').trim() : "",
+                            classNum: cols[7] ? cols[7].replace(/"/g, '').trim() : ""
+                        });
+                    }
+                }
+                records.sort((a, b) => parseDate(b.dateStr) - parseDate(a.dateStr));
+                localStorage.setItem('classRecords', JSON.stringify(records));
+                localStorage.setItem('lastSyncTime', formatSyncTime(bstNow));
+                renderRecords(); 
+
+                const d = bstNow.getDate();
+                const m = bstNow.getMonth() + 1;
+                const y = bstNow.getFullYear();
+                const possibleDates =[`${d}/${m}/${y}`, `${d.toString().padStart(2,'0')}/${m.toString().padStart(2,'0')}/${y}`, `${d}-${m}-${y}`, `${d.toString().padStart(2,'0')}-${m.toString().padStart(2,'0')}-${y}`];
+
+                let targetRow = null;
+                for(let i = rows.length - 1; i >= 1; i--) {
+                    const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const sheetDateStr = cols[0] ? cols[0].replace(/"/g, '').trim() : "";
+                    if (possibleDates.some(pd => sheetDateStr.includes(pd))) {
+                        targetRow = cols; break;
+                    }
+                }
+
+                if (targetRow) {
+                    fetchedData = {
+                        zoomLink: targetRow[1] ? targetRow[1].replace(/"/g, '').trim() : "",
+                        zoomID: targetRow[2] ? targetRow[2].replace(/"/g, '').trim() : "",
+                        zoomPass: targetRow[3] ? targetRow[3].replace(/"/g, '').trim() : "",
+                        altPlatform: (targetRow[4] && targetRow[4].trim() !== '""') ? "YouTube" : ((targetRow[5] && targetRow[5].trim() !== '""') ? "Facebook" : ""),
+                        altLink: (targetRow[4] && targetRow[4].trim() !== '""') ? targetRow[4].replace(/"/g, '').trim() : ((targetRow[5] && targetRow[5].trim() !== '""') ? targetRow[5].replace(/"/g, '').trim() : ""),
+                        note: targetRow[6] ? targetRow[6].replace(/"/g, '').trim() : "",
+                        classNum: targetRow[7] ? targetRow[7].replace(/"/g, '').trim() : "",
+                        meetLink: targetRow[10] ? targetRow[10].replace(/"/g, '').trim() : "",
+                        meetCode: targetRow[11] ? targetRow[11].replace(/"/g, '').trim() : "",
+                        isFetched: true
+                    };
+                } else {
+                    fetchedData = { zoomLink: "", zoomID: "", zoomPass: "", meetLink: "", meetCode: "", altPlatform: "", altLink: "", note: "", classNum: "", isFetched: true };
+                }
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                fetchedData.isFetched = true; 
+            }
+            isFetching = false;
+            updateUI(); 
+        }
+
+        /* ==========================================
+           UI আপডেট লজিক (মেইন ও আমুখতা)
+        ========================================== */
+        function updateUI() {
+            if (isFetching) return;
+
+            const bstNow = getBangladeshTime();
+            const dayOfWeek = bstNow.getDay(); 
+            const hours = bstNow.getHours();
+            const minutes = bstNow.getMinutes();
+            const dateStr = `${bstNow.getFullYear()}-${String(bstNow.getMonth()+1).padStart(2, '0')}-${String(bstNow.getDate()).padStart(2, '0')}`;
+
+            const infoContainer = document.getElementById('main-info-container');
+            const infoText = document.getElementById('main-info-text');
+            const infoTimer = document.getElementById('main-info-timer');
+            
+            const liveClassContainer = document.getElementById('live-class-container');
+            const postClassContainer = document.getElementById('post-class-container');
+            const teacherListContainer = document.getElementById('teacher-list-container');
+            
+            const successContainer = document.getElementById('success-container');
+            const successText = document.getElementById('success-text-content');
+            const warningText = document.getElementById('warning-text-content');
+            
+            const messageBox = document.getElementById('message-box');
+            const noteBox = document.getElementById('note-box');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const messageText = document.getElementById('message-text');
+
+            infoContainer.style.display = 'none';
+            liveClassContainer.style.display = 'none';
+            postClassContainer.style.display = 'none';
+            teacherListContainer.style.display = 'none';
+            successContainer.style.display = 'none';
+            messageBox.style.display = 'none';
+            noteBox.style.display = 'none';
+
+            // --- মেইন ক্লাস (রবি, মঙ্গল, বৃহস্পতি) ---
+            if (dayOfWeek === 0 || dayOfWeek === 2 || dayOfWeek === 4) {
+                if (hours >= 0 && hours < 19) {
+                    infoContainer.style.display = 'block';
+                    infoText.innerText = "আরবি ভাষা শিক্ষার আজকের ক্লাস শুরু হতে বাকি";
+                    
+                    const targetTime = new Date(bstNow); targetTime.setHours(19, 0, 0, 0);
+                    const diff = targetTime - bstNow;
+                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    infoTimer.innerText = toBengaliNum(h.toString().padStart(2, '0')) + ':' + toBengaliNum(m.toString().padStart(2, '0')) + ':' + toBengaliNum(s.toString().padStart(2, '0'));
+                } 
+                else if (hours >= 19 && hours <= 23) {
+                    if (!fetchedData.isFetched) {
+                        fetchSheetData(); 
+                    } else {
+                        if (fetchedData.note !== "") {
+                            noteBox.style.display = 'block';
+                            noteBox.innerText = fetchedData.note;
+                        } 
+                        else if (hours === 19 && minutes < 30) {
+                            if (fetchedData.zoomLink !== "" || fetchedData.meetLink !== "") {
+                                liveClassContainer.style.display = 'flex';
+                                document.getElementById('live-class-number').innerText = toBengaliNum(fetchedData.classNum || "০");
+                                if(fetchedData.altPlatform) document.getElementById('alt-platform-title').innerText = `${fetchedData.altPlatform} লাইভে জয়েন করুন`;
+                                
+                                // Zoom vs Meet Logic
+                                const mainTitle = document.getElementById('main-live-title');
+                                const mainBtnGroup = document.getElementById('main-btn-group');
+                                const mainJoinBtn = document.getElementById('main-join-btn');
+
+                                if(fetchedData.meetLink !== "") {
+                                    mainTitle.innerText = "Meet লাইভে জয়েন করুন";
+                                    mainJoinBtn.onclick = () => { submitMainAttendance(); setTimeout(() => { window.open(fetchedData.meetLink, '_blank'); }, 800); };
+                                    mainBtnGroup.innerHTML = `<button class="btn btn-secondary" onclick="copyText('${fetchedData.meetCode}', true)">copy code 📋</button>`;
+                                } else {
+                                    mainTitle.innerText = "Zoom লাইভে জয়েন করুন";
+                                    mainJoinBtn.onclick = () => { submitMainAttendance(); setTimeout(() => { window.open(fetchedData.zoomLink, '_blank'); }, 800); };
+                                    mainBtnGroup.innerHTML = `
+                                        <button class="btn btn-secondary" onclick="copyText('${fetchedData.zoomID}', true)">copy zoom ID 📋</button>
+                                        <button class="btn btn-secondary" onclick="copyText('${fetchedData.zoomPass}', true)">copy password 📋</button>
+                                    `;
+                                }
+
+                                const startTime = new Date(bstNow); startTime.setHours(19, 0, 0, 0);
+                                const diff = bstNow.getTime() - startTime.getTime();
+                                const m = Math.floor(diff / (1000 * 60));
+                                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                                document.getElementById('forward-timer').innerText = toBengaliNum(m.toString().padStart(2, '0')) + ':' + toBengaliNum(s.toString().padStart(2, '0'));
+                            } else {
+                                messageBox.style.display = 'flex';
+                                messageText.innerText = "এখনো ক্লাস লিংক পাওয়া যায়নি। সামান্য কিছু সময় পর Refresh বাটনে ক্লিক করুন।";
+                                refreshBtn.style.display = 'block';
+                            }
+                        }
+                        else {
+                            if (fetchedData.zoomLink !== "" || fetchedData.meetLink !== "" || fetchedData.altLink !== "") {
+                                postClassContainer.style.display = 'flex';
+                            } else {
+                                messageBox.style.display = 'flex';
+                                messageText.innerText = "আজকের লাইভ ক্লাস হয়নি।";
+                                refreshBtn.style.display = 'none';
+                            }
+                        }
+                    }
+                }
+            } 
+            // --- আমুখতা ক্লাস (শনি, সোম, বুধ) ---
+            else if (dayOfWeek === 6 || dayOfWeek === 1 || dayOfWeek === 3) {
+                const joinTimeStr = localStorage.getItem(`amukhta_join_${dateStr}`);
+                const amState = currentStage === 4 ? getDynamicAmukhtaState(bstNow) : getStaticAmukhtaState(bstNow);
+                let hasJoinedAndFinished = false;
+                
+                if (joinTimeStr) {
+                    const joinTime = parseInt(joinTimeStr);
+                    const diffMins = (bstNow.getTime() - joinTime) / (1000 * 60);
+                    if (diffMins >= 10) hasJoinedAndFinished = true;
+                    else if (amState.state !== 'live') {
+                        successContainer.style.display = 'block';
+                        successText.style.color = "#00695c"; successText.style.backgroundColor = "#e0f2f1"; successText.style.borderColor = "#80cbc4";
+                        successText.innerText = "আপনি পড়া শোনানোর ক্লাসে আছেন। ১০ মিনিট পর আপনার উপস্থিতি নিশ্চিত হবে।";
+                        warningText.innerText = "";
+                        return;
+                    }
+                }
+
+                if (hasJoinedAndFinished) {
+                    successContainer.style.display = 'block';
+                    successText.style.color = "#00695c"; successText.style.backgroundColor = "#e0f2f1"; successText.style.borderColor = "#80cbc4";
+                    successText.innerText = "আলহামদুলিল্লাহ, আপনি আজকের ক্লাসের পড়া শুনিয়েছেন।";
+                    warningText.innerText = "বিঃদ্রঃ একই দিনে একাধিকবার পড়া জমা দেয়া নিষিদ্ধ";
+                    return;
+                }
+
+                if (amState.state === 'countdown') {
+                    infoContainer.style.display = 'block';
+                    const currentAmukhtaClassNum = currentStage === 4 ? amState.classNum : calculateAmukhtaClassNumber(bstNow, amState.slot);
+                    infoText.innerText = `আজকের ${toBengaliNum(currentAmukhtaClassNum)} নং আমুখতা (পড়া শোনানোর ক্লাস) ক্লাস শুরু হতে বাকি`;
+                    
+                    const targetTime = new Date(bstNow); targetTime.setHours(amState.targetH, amState.targetM, 0, 0);
+                    const diff = targetTime - bstNow;
+                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    infoTimer.innerText = toBengaliNum(h.toString().padStart(2, '0')) + ':' + toBengaliNum(m.toString().padStart(2, '0')) + ':' + toBengaliNum(s.toString().padStart(2, '0'));
+                } 
+                else if (amState.state === 'live') {
+                    const currentAmukhtaClassNum = currentStage === 4 ? amState.classNum : calculateAmukhtaClassNumber(bstNow, amState.slot);
+                    
+                    infoContainer.style.display = 'block';
+                    infoText.innerText = `আজকের ${toBengaliNum(currentAmukhtaClassNum)} নং আমুখতা ক্লাস চলমান`;
+                    
+                    const startTime = new Date(bstNow); 
+                    if(currentStage === 4) startTime.setHours(amState.startH, amState.startM, 0, 0);
+                    else startTime.setHours(amState.slot===1?10 : amState.slot===2?15 : amState.slot===3?19 : 21, 0, 0, 0);
+                    
+                    const diff = bstNow - startTime;
+                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    infoTimer.innerText = toBengaliNum(m.toString().padStart(2, '0')) + ':' + toBengaliNum(s.toString().padStart(2, '0'));
+
+                    teacherListContainer.style.display = 'flex';
+                    if (teacherListContainer.innerHTML.trim() === '') {
+                        
+                        // Stage 3 & 4: শুধু নিজের শিক্ষিকা দেখাবে
+                        if(currentStage >= 3) {
+                            const myTeacherId = localStorage.getItem('myTeacherId');
+                            const myTeacherObj = amukhtaTeachers.find(t => t.id === myTeacherId);
+                            if(myTeacherObj) {
+                                const btn = document.createElement('button');
+                                btn.className = 'teacher-btn';
+                                btn.innerText = myTeacherObj.name;
+                                btn.onclick = () => openTeacherModal(myTeacherObj.id, true);
+                                teacherListContainer.appendChild(btn);
+                            }
+                        } 
+                        // Stage 1 & 2: সব শিক্ষিকা দেখাবে (সিরিয়াল নম্বর সহ)
+                        else {
+                            let availableTeachers = amukhtaTeachers.filter(t => t.slots.includes(amState.slot));
+                            availableTeachers.sort(() => Math.random() - 0.5); 
+                            
+                            availableTeachers.forEach((t, index) => {
+                                const btn = document.createElement('button');
+                                btn.className = 'teacher-btn';
+                                btn.innerText = `${toBengaliNum(index + 1)}. ${t.name}`;
+                                btn.onclick = () => openTeacherModal(t.id, true);
+                                teacherListContainer.appendChild(btn);
+                            });
+                        }
+                    }
+                } 
+                else if (amState.state === 'ended') {
+                    successContainer.style.display = 'block';
+                    if (!joinTimeStr) {
+                        successText.style.color = "#d32f2f"; successText.style.backgroundColor = "#ffebee"; successText.style.borderColor = "#ef9a9a";
+                        successText.innerText = "আজকে আমুখতা (পড়া শোনানোর) ক্লাস আপনি করেননি।";
+                        warningText.innerText = "";
+                    } else {
+                        successText.style.color = "#00695c"; successText.style.backgroundColor = "#e0f2f1"; successText.style.borderColor = "#80cbc4";
+                        successText.innerText = "আলহামদুলিল্লাহ, আপনি আজকের ক্লাসের পড়া শুনিয়েছেন।";
+                        warningText.innerText = "বিঃদ্রঃ একই দিনে একাধিকবার পড়া জমা দেয়া নিষিদ্ধ";
+                    }
+                }
+            } 
+            // --- শুক্রবার (5) ---
+            else {
+                successContainer.style.display = 'block';
+                successText.style.color = "#00695c"; successText.style.backgroundColor = "#e0f2f1"; successText.style.borderColor = "#80cbc4";
+                successText.innerText = "আজ শুক্রবার, সম্পূর্ণ ছুটি।";
+                warningText.innerText = "";
+            }
+        }
+
+        // ইনিশিয়ালাইজেশন
+        getOrCreateStudentID();
+        fetchSheetData();
+        setInterval(updateUI, 1000);
+
+        // পেন্ডিং ফর্ম সাবমিশন চেক (Security)
+        const pendingForm = localStorage.getItem('pending_admission_form');
+        if(pendingForm && !localStorage.getItem('admission_form_submitted')) {
+            const studentData = JSON.parse(pendingForm);
+            const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSeM-ocoPSjjSH3uK8zBh2fLZvxw-EgUzEbznxwGYyF0-C6PIQ/formResponse';
+            const formData = new URLSearchParams();
+            formData.append('entry.722068660', studentID);
+            formData.append('entry.734175229', studentData.name);
+            formData.append('entry.324016445', studentData.fbName);
+            formData.append('entry.1480199546', studentData.phone);
+            formData.append('entry.1514961557', studentData.fbLink);
+            formData.append('entry.1436318432', studentData.teacherId);
+
+            fetch(formUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData })
+            .then(() => { localStorage.setItem('admission_form_submitted', 'true'); localStorage.removeItem('pending_admission_form'); })
+            .catch(err => console.error(err));
+        }
+
+    </script>
+</body>
+</html>   
